@@ -221,15 +221,23 @@ body.dragging,body.dragging *{cursor:grabbing!important;}
    SETTINGS YOU CAN EDIT
    ════════════════════════════════════════════════════════════════════════════ */
 
-// 1) Paste YOUR Firebase web-app config here (see README.md). Leave apiKey empty to run local-only.
-const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAPXIFv_MtFXWLswP9lpjHkANa_tCMgzyo",
+  authDomain: "super-spork-d7528.firebaseapp.com",
+  projectId: "super-spork-d7528",
+  storageBucket: "super-spork-d7528.firebasestorage.app",
+  messagingSenderId: "330652733907",
+  appId: "1:330652733907:web:e680930a03d517f8b09f26"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
 // 2) Categories. h = colour hue (0-360), s = colour saturation % (use ~12 for grey).
 const CATEGORIES = [
