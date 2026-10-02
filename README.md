@@ -2,7 +2,7 @@
 
 A personal kanban board that runs as an installable web app. It is plain HTML/CSS/JS: no build step, no framework, no server of your own.
 
-- **Board:** Backlog / This Week / Today / Waiting / Done, with drag-and-drop ordering, search, category filter and repeating cards
+- **Board:** Backlog / This Week / Today / Waiting / Done, with drag-and-drop ordering, search, category filter, repeating cards, and a Columns/Rows layout toggle
 - **Quick-add tags:** `Call plumber #today !high @home due:fri *weekly [Kitchen reno] // notes`
 - **Focus mode:** one card at a time from Today, with a 15 / 25 / 50 minute timer
 - **Parking lot:** capture "what I was doing / what interrupted me / next step" so you can find your place again

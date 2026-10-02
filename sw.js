@@ -1,7 +1,7 @@
 // Tiny offline cache: the app shell loads instantly and works without a connection.
 // Your cards themselves live in localStorage / Firestore, not here.
 // Bump CACHE whenever you deploy a new index.html so devices pick it up.
-const CACHE = 'task-tracker-v1';
+const CACHE = 'task-tracker-v2';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

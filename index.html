@@ -114,6 +114,19 @@ code{background:var(--border);border-radius:4px;padding:0 4px;font-size:.92em;}
 @media (hover:none){.mv{display:flex;position:static;justify-content:flex-end;margin-top:6px;}.mv button{width:34px;height:28px;font-size:14px;}}
 @media (max-width:640px){.col{flex:0 0 86vw;max-height:calc(100vh - 270px);}.stat{min-width:70px;padding:7px 10px;}.stat b{font-size:17px;}}
 
+/* rows layout: lanes as horizontal bands instead of vertical columns */
+.board.rows{flex-direction:column;overflow:visible;scroll-snap-type:none;gap:10px;align-items:stretch;}
+.board.rows .col{flex:none;width:100%;min-width:0;max-height:none;min-height:0;display:grid;grid-template-columns:160px minmax(0,1fr);align-items:start;}
+.board.rows .col-side{grid-column:1;padding:12px 8px 10px 12px;}
+.board.rows .col-side .col-head{padding:0 0 4px;}
+.board.rows .col-side .col-hint{padding:0 0 8px;}
+.board.rows .col-side .qa{padding:0;}
+.board.rows .col-body{grid-column:2;display:flex;flex-direction:row;flex-wrap:wrap;gap:7px;overflow:visible;padding:10px 10px 10px 0;align-content:flex-start;align-items:flex-start;min-height:70px;}
+.board.rows .col-body .card,.board.rows .col-body .ph{width:230px;flex:0 0 230px;}
+.board.rows .col-body .empty{flex:1 1 100%;}
+.board.rows .col-body .tail{flex:1 1 100%;}
+@media (max-width:760px){.board.rows .col{grid-template-columns:1fr;}.board.rows .col-side,.board.rows .col-body{grid-column:1;}.board.rows .col-body .card,.board.rows .col-body .ph{width:100%;flex:1 1 220px;}}
+
 /* dragging */
 .ph{border:2px dashed var(--accent);background:var(--accent-soft);border-radius:9px;min-height:44px;opacity:.7;}
 .ghost{position:fixed;left:0;top:0;z-index:400;pointer-events:none;box-shadow:0 12px 28px rgba(15,23,42,.3)!important;opacity:.96;cursor:grabbing;margin:0!important;}
@@ -221,14 +234,14 @@ body.dragging,body.dragging *{cursor:grabbing!important;}
    SETTINGS YOU CAN EDIT
    ════════════════════════════════════════════════════════════════════════════ */
 
-// Your web app's Firebase configuration
+// 1) Paste YOUR Firebase web-app config here (see README.md). Leave apiKey empty to run local-only.
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAPXIFv_MtFXWLswP9lpjHkANa_tCMgzyo",
-  authDomain: "super-spork-d7528.firebaseapp.com",
-  projectId: "super-spork-d7528",
-  storageBucket: "super-spork-d7528.firebasestorage.app",
-  messagingSenderId: "330652733907",
-  appId: "1:330652733907:web:e680930a03d517f8b09f26"
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
 };
 
 // 2) Categories. h = colour hue (0-360), s = colour saturation % (use ~12 for grey).
@@ -404,6 +417,7 @@ const state = {
   filterCat: 'All', search: '', showAllDone: false,
   openProj: {}, showDoneProj: false, showDoneLinked: {},
   imp: null,
+  layout: ls.get('pt_layout') || 'columns',
 };
 state.tasks = normTasks(loadJSON('pt_tasks', SAMPLE_TASKS));
 state.projects = normProjects(loadJSON('pt_projects', []));
@@ -634,9 +648,11 @@ function buildBoard(counts){
   const due = state.tasks.filter(t=>!t.done && (t.lane==='backlog'||t.lane==='week') && t.due && t.due<=today());
   const nudge = due.length ? `<div class="nudge">📌 ${due.length} card${due.length>1?'s are':' is'} due today or overdue but still in Backlog / This Week.<button onclick="pullDueIntoToday()">Move to Today</button></div>` : '';
   const catSel = `<select onchange="setFilterCat(this.value)" aria-label="Category"><option value="All">All categories</option>${CATEGORIES.map(c=>`<option${state.filterCat===c.name?' selected':''}>${esc(c.name)}</option>`).join('')}</select>`;
-  const toolbar = `<div class="toolbar"><button class="fm-enter" onclick="enterFocus()" title="One card at a time from Today, with a focus timer">🎯 Focus</button><input id="search" type="search" value="${esc(state.search)}" oninput="setSearch(this.value)" placeholder="Search cards…">${catSel}</div>`;
-  return `<div class="stats">${stats}</div>${nudge}${toolbar}<div class="board">${LANES.map(buildColumn).join('')}</div>`;
+  const layoutSeg = `<div class="seg" role="group" aria-label="Board layout"><button class="${state.layout!=='rows'?'on':''}" onclick="setLayout('columns')" title="Lanes as side-by-side columns">▥ Columns</button><button class="${state.layout==='rows'?'on':''}" onclick="setLayout('rows')" title="Lanes as horizontal rows">☰ Rows</button></div>`;
+  const toolbar = `<div class="toolbar"><button class="fm-enter" onclick="enterFocus()" title="One card at a time from Today, with a focus timer">🎯 Focus</button><input id="search" type="search" value="${esc(state.search)}" oninput="setSearch(this.value)" placeholder="Search cards…">${catSel}${layoutSeg}</div>`;
+  return `<div class="stats">${stats}</div>${nudge}${toolbar}<div class="board${state.layout==='rows'?' rows':''}">${LANES.map(buildColumn).join('')}</div>`;
 }
+window.setLayout = l => { ls.set('pt_layout', l); setState({ layout:l }); };
 function buildColumn(l){
   const all = state.tasks.filter(t=>t.lane===l.id);
   let items = sortLane(l.id, all.filter(matches)), more = '';
@@ -644,8 +660,8 @@ function buildColumn(l){
   const qa = l.id==='done' ? '' : `<form class="qa" onsubmit="quickAdd(event,'${l.id}')"><input id="qa-${l.id}" name="q" autocomplete="off" placeholder="+ Add a card"></form>`;
   const clear = l.id==='done' && all.length ? `<button class="clear" onclick="archiveCompleted()">Clear →</button>` : '';
   return `<section class="col" data-zone="${l.id}" data-kind="card">
-    <div class="col-head"><h2>${l.label}</h2><span class="n">${all.length}</span>${clear}</div>
-    ${l.hint?`<div class="col-hint">${l.hint}</div>`:''}${qa}
+    <div class="col-side"><div class="col-head"><h2>${l.label}</h2><span class="n">${all.length}</span>${clear}</div>
+    ${l.hint?`<div class="col-hint">${l.hint}</div>`:''}${qa}</div>
     <div class="col-body" data-body="${l.id}">${items.length ? items.map(cardHTML).join('') : `<div class="empty">${all.length?'No cards match your filters':'Nothing here — drag a card in'}</div>`}${more}</div></section>`;
 }
 function cardHTML(t){
@@ -793,7 +809,10 @@ function dragMove(x, y){
   const body = z.querySelector('[data-body]') || z; d.body = body;
   if(z.dataset.zone==='done'){ body.insertBefore(d.ph, body.firstElementChild); return; }
   const sibs = [...body.children].filter(c => c.dataset && c.dataset.dragitem && c!==d.item);
-  const target = sibs.find(c => { const r = c.getBoundingClientRect(); return y < r.top + r.height/2; });
+  const wrapping = d.kind==='card' && state.layout==='rows' && sibs.length && sibs[0].getBoundingClientRect().width <= body.clientWidth*0.6;
+  const target = wrapping
+    ? sibs.find(c => { const r = c.getBoundingClientRect(); if(y < r.top-2) return true; if(y <= r.bottom) return x < r.left + r.width/2; return false; })
+    : sibs.find(c => { const r = c.getBoundingClientRect(); return y < r.top + r.height/2; });
   if(target){ if(d.ph.nextSibling!==target) body.insertBefore(d.ph, target); }
   else { const tail = body.querySelector(':scope > .tail'); if(tail) body.insertBefore(d.ph, tail); else if(body.lastElementChild!==d.ph) body.appendChild(d.ph); }
 }
@@ -802,7 +821,7 @@ function dragLoop(){
   const { x, y } = d, vh = window.innerHeight, vw = window.innerWidth;
   if(y < 130) window.scrollBy(0, -Math.ceil((130-y)/5)); else if(y > vh-70) window.scrollBy(0, Math.ceil((y-(vh-70))/5));
   const board = document.querySelector('.board');
-  if(board && d.kind==='card'){ if(x<60) board.scrollLeft -= Math.ceil((60-x)/4); else if(x>vw-60) board.scrollLeft += Math.ceil((x-(vw-60))/4); }
+  if(board && d.kind==='card' && state.layout!=='rows'){ if(x<60) board.scrollLeft -= Math.ceil((60-x)/4); else if(x>vw-60) board.scrollLeft += Math.ceil((x-(vw-60))/4); }
   if(d.body && d.body.scrollHeight > d.body.clientHeight){ const r = d.body.getBoundingClientRect(); if(y<r.top+40) d.body.scrollTop -= 8; else if(y>r.bottom-40) d.body.scrollTop += 8; }
   dragMove(x, y);
   d.raf = requestAnimationFrame(dragLoop);
