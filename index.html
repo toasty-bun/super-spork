@@ -114,18 +114,18 @@ code{background:var(--border);border-radius:4px;padding:0 4px;font-size:.92em;}
 @media (hover:none){.mv{display:flex;position:static;justify-content:flex-end;margin-top:6px;}.mv button{width:34px;height:28px;font-size:14px;}}
 @media (max-width:640px){.col{flex:0 0 86vw;max-height:calc(100vh - 270px);}.stat{min-width:70px;padding:7px 10px;}.stat b{font-size:17px;}}
 
-/* rows layout: lanes as horizontal bands instead of vertical columns */
+/* rows layout: every lane stacked in one column, each lane scrolling horizontally for its own cards */
 .board.rows{flex-direction:column;overflow:visible;scroll-snap-type:none;gap:10px;align-items:stretch;}
-.board.rows .col{flex:none;width:100%;min-width:0;max-height:none;min-height:0;display:grid;grid-template-columns:160px minmax(0,1fr);align-items:start;}
+.board.rows .col{flex:none;width:100%;min-width:0;max-height:none;min-height:0;display:grid;grid-template-columns:160px minmax(0,1fr);align-items:stretch;}
 .board.rows .col-side{grid-column:1;padding:12px 8px 10px 12px;}
 .board.rows .col-side .col-head{padding:0 0 4px;}
 .board.rows .col-side .col-hint{padding:0 0 8px;}
 .board.rows .col-side .qa{padding:0;}
-.board.rows .col-body{grid-column:2;display:flex;flex-direction:row;flex-wrap:wrap;gap:7px;overflow:visible;padding:10px 10px 10px 0;align-content:flex-start;align-items:flex-start;min-height:70px;}
-.board.rows .col-body .card,.board.rows .col-body .ph{width:230px;flex:0 0 230px;}
-.board.rows .col-body .empty{flex:1 1 100%;}
-.board.rows .col-body .tail{flex:1 1 100%;}
-@media (max-width:760px){.board.rows .col{grid-template-columns:1fr;}.board.rows .col-side,.board.rows .col-body{grid-column:1;}.board.rows .col-body .card,.board.rows .col-body .ph{width:100%;flex:1 1 220px;}}
+.board.rows .col-body{grid-column:2;display:flex;flex-direction:row;flex-wrap:nowrap;gap:7px;overflow-x:auto;overflow-y:hidden;padding:10px 10px 14px 0;align-items:flex-start;min-height:70px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;}
+.board.rows .col-body .card,.board.rows .col-body .ph{width:230px;flex:0 0 230px;scroll-snap-align:start;}
+.board.rows .col-body .empty{flex:0 0 auto;align-self:center;}
+.board.rows .col-body .tail{flex:0 0 auto;align-self:center;}
+@media (max-width:760px){.board.rows .col{grid-template-columns:110px minmax(0,1fr);}.board.rows .col-side{padding:10px 6px 10px 10px;}.board.rows .col-body .card,.board.rows .col-body .ph{width:200px;flex:0 0 200px;}}
 
 /* dragging */
 .ph{border:2px dashed var(--accent);background:var(--accent-soft);border-radius:9px;min-height:44px;opacity:.7;}
@@ -809,9 +809,9 @@ function dragMove(x, y){
   const body = z.querySelector('[data-body]') || z; d.body = body;
   if(z.dataset.zone==='done'){ body.insertBefore(d.ph, body.firstElementChild); return; }
   const sibs = [...body.children].filter(c => c.dataset && c.dataset.dragitem && c!==d.item);
-  const wrapping = d.kind==='card' && state.layout==='rows' && sibs.length && sibs[0].getBoundingClientRect().width <= body.clientWidth*0.6;
-  const target = wrapping
-    ? sibs.find(c => { const r = c.getBoundingClientRect(); if(y < r.top-2) return true; if(y <= r.bottom) return x < r.left + r.width/2; return false; })
+  const horiz = d.kind==='card' && state.layout==='rows';
+  const target = horiz
+    ? sibs.find(c => { const r = c.getBoundingClientRect(); return x < r.left + r.width/2; })
     : sibs.find(c => { const r = c.getBoundingClientRect(); return y < r.top + r.height/2; });
   if(target){ if(d.ph.nextSibling!==target) body.insertBefore(d.ph, target); }
   else { const tail = body.querySelector(':scope > .tail'); if(tail) body.insertBefore(d.ph, tail); else if(body.lastElementChild!==d.ph) body.appendChild(d.ph); }
@@ -822,7 +822,10 @@ function dragLoop(){
   if(y < 130) window.scrollBy(0, -Math.ceil((130-y)/5)); else if(y > vh-70) window.scrollBy(0, Math.ceil((y-(vh-70))/5));
   const board = document.querySelector('.board');
   if(board && d.kind==='card' && state.layout!=='rows'){ if(x<60) board.scrollLeft -= Math.ceil((60-x)/4); else if(x>vw-60) board.scrollLeft += Math.ceil((x-(vw-60))/4); }
-  if(d.body && d.body.scrollHeight > d.body.clientHeight){ const r = d.body.getBoundingClientRect(); if(y<r.top+40) d.body.scrollTop -= 8; else if(y>r.bottom-40) d.body.scrollTop += 8; }
+  if(d.body && d.kind==='card' && state.layout==='rows' && d.body.scrollWidth > d.body.clientWidth){
+    const r = d.body.getBoundingClientRect();
+    if(x < r.left+40) d.body.scrollLeft -= 8; else if(x > r.right-40) d.body.scrollLeft += 8;
+  } else if(d.body && d.body.scrollHeight > d.body.clientHeight){ const r = d.body.getBoundingClientRect(); if(y<r.top+40) d.body.scrollTop -= 8; else if(y>r.bottom-40) d.body.scrollTop += 8; }
   dragMove(x, y);
   d.raf = requestAnimationFrame(dragLoop);
 }
